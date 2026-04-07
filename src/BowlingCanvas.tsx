@@ -336,9 +336,10 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
         }
       });
 
+
       // Ball
       if (isRollingRef.current || !isRollingRef.current) {
-        const ballColor = currentPlayer.team === 'Fireball' ? '#ff4400' : '#00aaff';
+        const ballColor = '#ff4400';
         ctx.fillStyle = ballColor;
         ctx.shadowBlur = 15;
         ctx.shadowColor = ballColor;
@@ -358,8 +359,9 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
         ctx.stroke();
       }
 
-      // Aiming line
+      // Aiming line & Trajectory Guide
       if (!isRollingRef.current) {
+        // Basic aim line
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
@@ -370,6 +372,37 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
         );
         ctx.stroke();
         ctx.setLineDash([]);
+
+        // Trajectory guide when charging
+        if (isCharging) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.setLineDash([2, 4]);
+          let tempX = ballPos.current.x;
+          let tempY = ballPos.current.y;
+          const speed = 2 + (power / 100) * 4;
+          let tempVx = Math.sin(aimAngleRef.current) * speed;
+          let tempVy = -Math.cos(aimAngleRef.current) * speed;
+          let tempGutter = false;
+
+          ctx.moveTo(tempX, tempY);
+          // Predict 100 frames ahead
+          for (let i = 0; i < 100; i++) {
+            if (!tempGutter && (tempX < 40 || tempX > 260)) {
+              tempGutter = true;
+              tempVx = 0;
+            }
+            if (!tempGutter) {
+              tempVx += spin * 0.075;
+            }
+            tempX += tempVx;
+            tempY += tempVy;
+            ctx.lineTo(tempX, tempY);
+            if (tempY < 0 || tempX < 0 || tempX > 300) break;
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       }
     };
 
@@ -389,7 +422,7 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isCharging) {
       const dx = e.clientX - chargeStartPos.current.x;
-      const dy = chargeStartPos.current.y - e.clientY; // Up is positive power
+      const dy = e.clientY - chargeStartPos.current.y; // Down is positive power (pull back)
       
       const newSpin = Math.max(-1, Math.min(1, dx / 100));
       const newPower = Math.max(0, Math.min(100, dy / 2));
@@ -411,7 +444,7 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (isCharging) {
       const dx = e.touches[0].clientX - chargeStartPos.current.x;
-      const dy = chargeStartPos.current.y - e.touches[0].clientY;
+      const dy = e.touches[0].clientY - chargeStartPos.current.y; // Down is positive power (pull back)
       
       const newSpin = Math.max(-1, Math.min(1, dx / 100));
       const newPower = Math.max(0, Math.min(100, dy / 2));
@@ -478,7 +511,7 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
       </div>
 
       <div className="text-xs text-white/40 font-mono text-center max-w-[300px] leading-relaxed">
-        DRAG UP TO CHARGE POWER • DRAG LEFT/RIGHT FOR SPIN<br/>
+        PULL BACK TO CHARGE POWER • DRAG LEFT/RIGHT FOR SPIN<br/>
         RELEASE TO BOWL
       </div>
     </div>

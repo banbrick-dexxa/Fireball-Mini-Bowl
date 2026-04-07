@@ -35,17 +35,7 @@ export default function App() {
   };
 
   const calculateWinner = (finalPlayers: Player[]) => {
-    const fireballScore = finalPlayers
-      .filter(p => p.team === 'Fireball')
-      .reduce((sum, p) => sum + p.scores.reduce((a, b) => a + b, 0), 0);
-    
-    const exhaustScore = finalPlayers
-      .filter(p => p.team === 'FM Exhaust')
-      .reduce((sum, p) => sum + p.scores.reduce((a, b) => a + b, 0), 0);
-
-    if (fireballScore > exhaustScore) setWinner('Fireball');
-    else if (exhaustScore > fireballScore) setWinner('FM Exhaust');
-    else setWinner('Draw');
+    setWinner('Fireball');
   };
 
   const resetGame = () => {
@@ -77,20 +67,20 @@ export default function App() {
 
         <div className="text-center">
           <div className="text-2xl font-black tracking-tighter tabular-nums leading-none">
-            {getTeamScore('Fireball')} <span className="text-white/20 mx-1">VS</span> {getTeamScore('FM Exhaust')}
+            {getTeamScore('Fireball')} <span className="text-white/20 mx-1">PINS</span>
           </div>
           <div className="text-[8px] font-mono text-white/40 uppercase tracking-widest mt-1">
-            Total Pins
+            Total Score
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-right">
+        <div className="flex items-center gap-2 text-right opacity-0 pointer-events-none">
           <div className="hidden sm:block">
-            <h1 className="text-lg font-bold tracking-tighter uppercase italic leading-none">FM Exhaust</h1>
-            <p className="text-[8px] font-mono text-blue-500/60 tracking-[0.2em]">TEAM OMEGA</p>
+            <h1 className="text-lg font-bold tracking-tighter uppercase italic leading-none">Fireball</h1>
+            <p className="text-[8px] font-mono text-orange-500/60 tracking-[0.2em]">TEAM ALPHA</p>
           </div>
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)]">
-            <Wind className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(234,88,12,0.4)]">
+            <Flame className="w-5 h-5 text-white" />
           </div>
         </div>
       </header>
@@ -115,12 +105,12 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center p-8 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-xl w-full"
               >
-                <Trophy className={`w-16 h-16 mx-auto mb-4 ${winner === 'Fireball' ? 'text-orange-500' : winner === 'FM Exhaust' ? 'text-blue-500' : 'text-gray-400'}`} />
+                <Trophy className="w-16 h-16 mx-auto mb-4 text-orange-500" />
                 <h2 className="text-3xl font-black tracking-tighter uppercase italic mb-2">
-                  {winner === 'Draw' ? "It's a Draw!" : `${winner} Wins!`}
+                  Game Over!
                 </h2>
                 <p className="text-white/40 font-mono text-[10px] mb-6 uppercase tracking-widest">
-                  Final Score: {getTeamScore('Fireball')} - {getTeamScore('FM Exhaust')}
+                  Final Score: {getTeamScore('Fireball')}
                 </p>
                 <button
                   onClick={resetGame}
@@ -134,28 +124,14 @@ export default function App() {
         </section>
 
         {/* Scoreboards (Right) */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <section className="grid grid-cols-1 gap-8">
           {/* Fireball Team List */}
           <div className="space-y-4">
             <h2 className="text-[10px] font-mono uppercase tracking-[0.3em] text-orange-500/60 flex items-center gap-2">
               <Flame className="w-3 h-3" /> Fireball Roster
             </h2>
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {players.filter(p => p.team === 'Fireball').map((player) => (
-                <div key={player.id}>
-                  <PlayerCard player={player} isActive={currentPlayer.id === player.id} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* FM Exhaust Team List */}
-          <div className="space-y-4">
-            <h2 className="text-[10px] font-mono uppercase tracking-[0.3em] text-blue-500/60 flex items-center gap-2">
-              <Wind className="w-3 h-3" /> FM Exhaust Roster
-            </h2>
-            <div className="space-y-2">
-              {players.filter(p => p.team === 'FM Exhaust').map((player) => (
                 <div key={player.id}>
                   <PlayerCard player={player} isActive={currentPlayer.id === player.id} />
                 </div>
@@ -168,7 +144,7 @@ export default function App() {
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 p-6 flex justify-center pointer-events-none">
         <div className="px-6 py-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 text-[10px] font-mono text-white/40 uppercase tracking-[0.4em]">
-          Fireball vs FM Exhaust • 4v4 Bowling Championship
+          Fireball Bowling Championship
         </div>
       </footer>
     </div>

@@ -1,4 +1,4 @@
-export type Team = 'Fireball' | 'FM Exhaust';
+export type Team = 'Fireball';
 
 export interface Player {
   id: string;
@@ -22,8 +22,4 @@ export const INITIAL_PLAYERS: Player[] = [
   { id: 'f2', name: 'Jay', team: 'Fireball', scores: [], currentFrame: 0, isCurrentPlayer: false },
   { id: 'f3', name: 'Nate', team: 'Fireball', scores: [], currentFrame: 0, isCurrentPlayer: false },
   { id: 'f4', name: 'Travis', team: 'Fireball', scores: [], currentFrame: 0, isCurrentPlayer: false },
-  { id: 'e1', name: 'Dallas', team: 'FM Exhaust', scores: [], currentFrame: 0, isCurrentPlayer: false },
-  { id: 'e2', name: 'Les', team: 'FM Exhaust', scores: [], currentFrame: 0, isCurrentPlayer: false },
-  { id: 'e3', name: 'Paul', team: 'FM Exhaust', scores: [], currentFrame: 0, isCurrentPlayer: false },
-  { id: 'e4', name: 'Bo', team: 'FM Exhaust', scores: [], currentFrame: 0, isCurrentPlayer: false },
 ];
