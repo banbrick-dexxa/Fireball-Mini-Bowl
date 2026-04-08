@@ -9,19 +9,22 @@ interface BowlingCanvasProps {
 const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isAiming, setIsAiming] = useState(true);
-  const [isCharging, setIsCharging] = useState(false);
   const [isRolling, setIsRolling] = useState(false);
   const [power, setPower] = useState(0);
-  const [spin, setSpin] = useState(0); // -1 to 1
+  const [spin, setSpin] = useState(0);
+  
+  const isChargingRef = useRef(false);
+  const powerRef = useRef(0);
+  const spinRef = useRef(0);
 
   const aimAngleRef = useRef(0);
-  const ballPos = useRef({ x: 150, y: 500 });
+  const ballPos = useRef({ x: 150, y: 360 });
   const ballVel = useRef({ x: 0, y: 0 });
   const ballSpin = useRef(0);
   const isGutter = useRef(false);
   const pins = useRef<{ x: number; y: number; vx: number; vy: number; rotation: number; rotationVel: number; isKnocked: boolean; length: number; fallProgress: number }[]>([]);
   const chargeStartPos = useRef({ x: 0, y: 0 });
-  const triggerY = 230; // Just before the head pin (startY is 180)
+  const triggerY = 170; // Just before the head pin (startY is 120)
   const isTriggeredRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const isRollingRef = useRef(false);
@@ -30,7 +33,7 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
   const initPins = () => {
     const newPins = [];
     const startX = 150;
-    const startY = 180;
+    const startY = 120;
     const spacing = 36;
     for (let row = 0; row < 4; row++) {
       for (let col = 0; col <= row; col++) {
@@ -51,7 +54,7 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
     isTriggeredRef.current = false;
     timerRef.current = null;
     isGutter.current = false;
-    ballPos.current = { x: 150, y: 500 };
+    ballPos.current = { x: 150, y: 360 };
     ballVel.current = { x: 0, y: 0 };
     isRollingRef.current = false;
     setIsRolling(false);
@@ -109,8 +112,8 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
             const dy = ballPos.current.y - pin.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            const pinRadius = pin.isKnocked ? 12 : 8;
-            if (dist < 12 + pinRadius) {
+            const pinRadius = pin.isKnocked ? 9 : 6;
+            if (dist < 9 + pinRadius) {
               if (!pin.isKnocked) {
                 pin.isKnocked = true;
                 pin.rotationVel = (Math.random() - 0.5) * 0.5;
@@ -129,7 +132,7 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
 
               // Separate ball and pin
               const angleToBall = Math.atan2(dy, dx); // From pin to ball
-              const overlap = (12 + pinRadius) - dist;
+              const overlap = (9 + pinRadius) - dist;
               ballPos.current.x += Math.cos(angleToBall) * overlap;
               ballPos.current.y += Math.sin(angleToBall) * overlap;
             }
@@ -171,11 +174,11 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
             pin.length = pin.fallProgress * 16;
           }
 
-          // Friction - Increased to make pins stop faster
-          const friction = pin.isKnocked ? 0.90 : 0.96;
+          // Friction - Reduced to make pins slide more
+          const friction = pin.isKnocked ? 0.97 : 0.98;
           pin.vx *= friction;
           pin.vy *= friction;
-          pin.rotationVel *= 0.90;
+          pin.rotationVel *= 0.95;
 
           if (Math.abs(pin.vx) < 0.1) pin.vx = 0;
           if (Math.abs(pin.vy) < 0.1) pin.vy = 0;
@@ -210,8 +213,8 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
             const dy = otherPin.y - pin.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            const r1 = pin.isKnocked ? 12 : 8;
-            const r2 = otherPin.isKnocked ? 12 : 8;
+            const r1 = pin.isKnocked ? 9 : 6;
+            const r2 = otherPin.isKnocked ? 9 : 6;
             
             if (dist < r1 + r2) {
               if (!otherPin.isKnocked || !pin.isKnocked) {
@@ -303,34 +306,65 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
           ctx.rotate(pin.rotation);
           
           if (pin.isKnocked) {
-            ctx.globalAlpha = 0.7;
+            ctx.globalAlpha = 0.7 + (pin.fallProgress * 0.3);
             ctx.fillStyle = 'white';
-            // Compatible rounded rect
-            const w = 16;
-            const h = pin.length + 8;
-            const r = 8;
+            
+            const w = 12;
+            const h = 24; // Full height when fallen
+            const scale = pin.fallProgress;
+            
+            ctx.save();
+            ctx.scale(1, scale);
+            
+            // Draw Pin Body (Side View)
             ctx.beginPath();
-            ctx.moveTo(-w/2 + r, -h/2);
-            ctx.lineTo(w/2 - r, -h/2);
-            ctx.quadraticCurveTo(w/2, -h/2, w/2, -h/2 + r);
-            ctx.lineTo(w/2, h/2 - r);
-            ctx.quadraticCurveTo(w/2, h/2, w/2 - r, h/2);
-            ctx.lineTo(-w/2 + r, h/2);
-            ctx.quadraticCurveTo(-w/2, h/2, -w/2, h/2 - r);
-            ctx.lineTo(-w/2, -h/2 + r);
-            ctx.quadraticCurveTo(-w/2, -h/2, -w/2 + r, -h/2);
+            // Head
+            ctx.arc(0, -h * 0.35, w * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Neck, Belly and Base
+            ctx.beginPath();
+            ctx.moveTo(-w * 0.15, -h * 0.25);
+            ctx.bezierCurveTo(-w * 0.15, -h * 0.1, -w * 0.45, 0, -w * 0.45, h * 0.2);
+            ctx.bezierCurveTo(-w * 0.45, h * 0.35, -w * 0.35, h * 0.45, -w * 0.3, h * 0.5);
+            ctx.lineTo(w * 0.3, h * 0.5);
+            ctx.bezierCurveTo(w * 0.35, h * 0.45, w * 0.45, h * 0.35, w * 0.45, h * 0.2);
+            ctx.bezierCurveTo(w * 0.45, 0, w * 0.15, -h * 0.1, w * 0.15, -h * 0.25);
             ctx.closePath();
             ctx.fill();
             
-            ctx.fillStyle = 'red';
-            ctx.fillRect(-8, 0, 16, 2);
+            // Red Stripes
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(-w * 0.2, -h * 0.2, w * 0.4, h * 0.04);
+            ctx.fillRect(-w * 0.22, -h * 0.14, w * 0.44, h * 0.04);
+            
+            ctx.restore();
           } else {
+            // Standing Pin (Top View)
+            // Main body shadow/depth
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.arc(1, 1, 7, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Main body
             ctx.fillStyle = 'white';
             ctx.beginPath();
-            ctx.arc(0, 0, 8, 0, Math.PI * 2);
+            ctx.arc(0, 0, 7, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = 'red';
-            ctx.fillRect(-8, -2, 16, 2);
+            
+            // Head (Top view)
+            ctx.fillStyle = '#f8f8f8';
+            ctx.beginPath();
+            ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Red ring
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+            ctx.stroke();
           }
           ctx.restore();
         }
@@ -344,19 +378,9 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
         ctx.shadowBlur = 15;
         ctx.shadowColor = ballColor;
         ctx.beginPath();
-        ctx.arc(ballPos.current.x, ballPos.current.y, 12, 0, Math.PI * 2);
+        ctx.arc(ballPos.current.x, ballPos.current.y, 10.35, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
-      }
-
-      // Spin indicator on ball
-      if (isRollingRef.current && (ballVel.current.x !== 0 || ballVel.current.y !== 0)) {
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(ballPos.current.x, ballPos.current.y - 12);
-        ctx.lineTo(ballPos.current.x + ballSpin.current * 10, ballPos.current.y - 12);
-        ctx.stroke();
       }
 
       // Aiming line & Trajectory Guide
@@ -374,34 +398,39 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
         ctx.setLineDash([]);
 
         // Trajectory guide when charging
-        if (isCharging) {
+        const ballNumber = currentPlayer.scores.length + 1;
+        if (isChargingRef.current && ballNumber < 3) {
           ctx.beginPath();
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-          ctx.setLineDash([2, 4]);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.lineWidth = 2;
           let tempX = ballPos.current.x;
           let tempY = ballPos.current.y;
-          const speed = 2 + (power / 100) * 4;
+          const speed = 2 + (powerRef.current / 100) * 4;
           let tempVx = Math.sin(aimAngleRef.current) * speed;
           let tempVy = -Math.cos(aimAngleRef.current) * speed;
           let tempGutter = false;
 
           ctx.moveTo(tempX, tempY);
-          // Predict 100 frames ahead
-          for (let i = 0; i < 100; i++) {
+          // Predict until just beyond the head pin or halfway depending on ball number
+          const stopY = ballNumber === 1 ? 100 : 240; // 240 is halfway between 360 and 120
+
+          for (let i = 0; i < 200; i++) {
             if (!tempGutter && (tempX < 40 || tempX > 260)) {
               tempGutter = true;
               tempVx = 0;
             }
             if (!tempGutter) {
-              tempVx += spin * 0.075;
+              tempVx += spinRef.current * 0.075;
             }
             tempX += tempVx;
             tempY += tempVy;
             ctx.lineTo(tempX, tempY);
-            if (tempY < 0 || tempX < 0 || tempX > 300) break;
+            
+            // Stop based on ball number
+            if (tempY < stopY || tempX < 0 || tempX > 300) break;
           }
           ctx.stroke();
-          ctx.setLineDash([]);
+          ctx.lineWidth = 1; // Reset
         }
       }
     };
@@ -412,7 +441,9 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (isAiming && !isRolling) {
-      setIsCharging(true);
+      isChargingRef.current = true;
+      powerRef.current = 0;
+      spinRef.current = 0;
       setPower(0);
       setSpin(0);
       chargeStartPos.current = { x: e.clientX, y: e.clientY };
@@ -420,13 +451,15 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isCharging) {
+    if (isChargingRef.current) {
       const dx = e.clientX - chargeStartPos.current.x;
       const dy = e.clientY - chargeStartPos.current.y; // Down is positive power (pull back)
       
       const newSpin = Math.max(-1, Math.min(1, dx / 100));
       const newPower = Math.max(0, Math.min(100, dy / 2));
       
+      spinRef.current = newSpin;
+      powerRef.current = newPower;
       setSpin(newSpin);
       setPower(newPower);
     }
@@ -434,7 +467,9 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isAiming && !isRolling) {
-      setIsCharging(true);
+      isChargingRef.current = true;
+      powerRef.current = 0;
+      spinRef.current = 0;
       setPower(0);
       setSpin(0);
       chargeStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -442,42 +477,43 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (isCharging) {
+    if (isChargingRef.current) {
       const dx = e.touches[0].clientX - chargeStartPos.current.x;
       const dy = e.touches[0].clientY - chargeStartPos.current.y; // Down is positive power (pull back)
       
       const newSpin = Math.max(-1, Math.min(1, dx / 100));
       const newPower = Math.max(0, Math.min(100, dy / 2));
       
+      spinRef.current = newSpin;
+      powerRef.current = newPower;
       setSpin(newSpin);
       setPower(newPower);
     }
   };
 
   const handleMouseUp = () => {
-    if (isCharging) {
-      setIsCharging(false);
+    if (isChargingRef.current) {
+      isChargingRef.current = false;
       setIsAiming(false);
       isRollingRef.current = true;
       setIsRolling(true);
-      const speed = 2 + (power / 100) * 4;
+      const speed = 2 + (powerRef.current / 100) * 4;
       ballVel.current = {
         x: Math.sin(aimAngleRef.current) * speed,
         y: -Math.cos(aimAngleRef.current) * speed,
       };
-      ballSpin.current = spin;
+      ballSpin.current = spinRef.current;
+      setPower(0);
+      setSpin(0);
     }
   };
 
   return (
     <div className="relative flex flex-col items-center gap-4">
-      <div className="text-sm font-mono uppercase tracking-widest opacity-50">
-        {currentPlayer.team} - {currentPlayer.name}'s Turn
-      </div>
       <canvas
         ref={canvasRef}
         width={300}
-        height={600}
+        height={510}
         className="bg-black rounded-lg shadow-2xl border border-white/10 cursor-crosshair touch-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -510,10 +546,6 @@ const BowlingCanvas: React.FC<BowlingCanvasProps> = ({ currentPlayer, onBowl }) 
         </div>
       </div>
 
-      <div className="text-xs text-white/40 font-mono text-center max-w-[300px] leading-relaxed">
-        PULL BACK TO CHARGE POWER • DRAG LEFT/RIGHT FOR SPIN<br/>
-        RELEASE TO BOWL
-      </div>
     </div>
   );
 };

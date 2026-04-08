@@ -8,7 +8,22 @@ export default function App() {
   const [players, setPlayers] = useState<Player[]>(INITIAL_PLAYERS);
   const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isGameStarted, setIsGameStarted] = useState(false);
   const [winner, setWinner] = useState<Team | 'Draw' | null>(null);
+  const scoreboardRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scoreboardRef.current) {
+      const activeElement = scoreboardRef.current.children[currentTurnIndex] as HTMLElement;
+      if (activeElement) {
+        activeElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        });
+      }
+    }
+  }, [currentTurnIndex]);
 
   const currentPlayer = players[currentTurnIndex];
 
@@ -24,8 +39,8 @@ export default function App() {
     // Move to next player
     const nextIndex = (currentTurnIndex + 1) % players.length;
     
-    // Check if game is over (e.g., after 5 frames for each player)
-    const totalFrames = 5;
+    // Check if game is over (after 3 balls for each player)
+    const totalFrames = 3;
     if (updatedPlayers.every(p => p.scores.length >= totalFrames)) {
       setIsGameOver(true);
       calculateWinner(updatedPlayers);
@@ -35,6 +50,8 @@ export default function App() {
   };
 
   const calculateWinner = (finalPlayers: Player[]) => {
+    // Since all players are currently on the 'Fireball' team, 
+    // we'll just acknowledge the team's completion or find the top scorer.
     setWinner('Fireball');
   };
 
@@ -53,43 +70,39 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-orange-500/30">
-      {/* Header */}
-      <header className="p-4 border-b border-white/5 flex justify-between items-center bg-black/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(234,88,12,0.4)]">
-            <Flame className="w-5 h-5 text-white" />
+      {/* Header with Scoreboard */}
+      <header className="p-2 border-b border-white/5 bg-black/50 backdrop-blur-sm sticky top-0 z-50 h-[12vh] flex items-center overflow-hidden">
+        <div className="max-w-7xl mx-auto w-full px-4 flex items-center gap-6">
+          <div 
+            className="flex items-center gap-2 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => setIsGameStarted(false)}
+          >
+            <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(234,88,12,0.4)]">
+              <Flame className="w-5 h-5 text-white" />
+            </div>
+            <div className="hidden md:block">
+              <h1 className="text-sm font-bold tracking-tighter uppercase italic leading-none">Fireball</h1>
+              <p className="text-[7px] font-mono text-orange-500/60 tracking-[0.2em]">ROSTER</p>
+            </div>
           </div>
-          <div className="hidden sm:block">
-            <h1 className="text-lg font-bold tracking-tighter uppercase italic leading-none">Fireball</h1>
-            <p className="text-[8px] font-mono text-orange-500/60 tracking-[0.2em]">TEAM ALPHA</p>
-          </div>
-        </div>
 
-        <div className="text-center">
-          <div className="text-2xl font-black tracking-tighter tabular-nums leading-none">
-            {getTeamScore('Fireball')} <span className="text-white/20 mx-1">PINS</span>
-          </div>
-          <div className="text-[8px] font-mono text-white/40 uppercase tracking-widest mt-1">
-            Total Score
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-right opacity-0 pointer-events-none">
-          <div className="hidden sm:block">
-            <h1 className="text-lg font-bold tracking-tighter uppercase italic leading-none">Fireball</h1>
-            <p className="text-[8px] font-mono text-orange-500/60 tracking-[0.2em]">TEAM ALPHA</p>
-          </div>
-          <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(234,88,12,0.4)]">
-            <Flame className="w-5 h-5 text-white" />
+          <div ref={scoreboardRef} className="flex-1 flex gap-2 overflow-x-auto no-scrollbar py-1">
+            {players.map((player) => (
+              <div key={player.id} className="min-w-[120px] flex-1">
+                <PlayerCard player={player} isActive={currentPlayer.id === player.id} />
+              </div>
+            ))}
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-12 items-start">
-        {/* Game Canvas (Left) */}
-        <section className="flex flex-col items-center justify-center lg:sticky lg:top-24">
+      <main className="max-w-6xl mx-auto p-4 flex flex-col items-center justify-center min-h-[80vh]">
+        {/* Game Canvas */}
+        <section className="flex flex-col items-center justify-center">
           <AnimatePresence mode="wait">
-            {!isGameOver ? (
+            {!isGameStarted ? (
+              <StartMenu onStart={() => setIsGameStarted(true)} />
+            ) : !isGameOver ? (
               <motion.div
                 key="game"
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -103,7 +116,7 @@ export default function App() {
                 key="results"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center p-8 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-xl w-full"
+                className="text-center p-8 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-xl w-[350px]"
               >
                 <Trophy className="w-16 h-16 mx-auto mb-4 text-orange-500" />
                 <h2 className="text-3xl font-black tracking-tighter uppercase italic mb-2">
@@ -122,31 +135,7 @@ export default function App() {
             )}
           </AnimatePresence>
         </section>
-
-        {/* Scoreboards (Right) */}
-        <section className="grid grid-cols-1 gap-8">
-          {/* Fireball Team List */}
-          <div className="space-y-4">
-            <h2 className="text-[10px] font-mono uppercase tracking-[0.3em] text-orange-500/60 flex items-center gap-2">
-              <Flame className="w-3 h-3" /> Fireball Roster
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {players.filter(p => p.team === 'Fireball').map((player) => (
-                <div key={player.id}>
-                  <PlayerCard player={player} isActive={currentPlayer.id === player.id} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
       </main>
-
-      {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 p-6 flex justify-center pointer-events-none">
-        <div className="px-6 py-2 bg-white/5 backdrop-blur-md rounded-full border border-white/10 text-[10px] font-mono text-white/40 uppercase tracking-[0.4em]">
-          Fireball Bowling Championship
-        </div>
-      </footer>
     </div>
   );
 }
@@ -163,30 +152,90 @@ function PlayerCard({ player, isActive, isRight = false }: PlayerCardProps) {
   return (
     <motion.div
       animate={{ 
-        x: isActive ? (isRight ? -5 : 5) : 0,
-        backgroundColor: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)'
+        scale: isActive ? 1.02 : 1,
+        backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)'
       }}
-      className={`p-2 rounded-xl border ${isActive ? (player.team === 'Fireball' ? 'border-orange-500/50' : 'border-blue-500/50') : 'border-white/5'} transition-colors`}
+      className={`p-1.5 rounded-lg border ${isActive ? 'border-orange-500/50' : 'border-white/5'} transition-colors`}
     >
-      <div className={`flex items-center gap-3 ${isRight ? 'flex-row-reverse' : ''}`}>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${player.team === 'Fireball' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
+      <div className="flex items-center gap-2">
+        <div className={`w-6 h-6 rounded flex items-center justify-center font-black text-[10px] ${player.team === 'Fireball' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500'}`}>
           {player.name[0]}
         </div>
-        <div className="flex-1 overflow-hidden">
-          <div className="font-bold tracking-tight text-sm truncate">{player.name}</div>
-          <div className="flex gap-0.5 mt-1">
-            {Array.from({ length: 5 }).map((_, i) => (
+        <div className="flex-1 min-w-0">
+          <div className="font-bold tracking-tight text-[10px] truncate uppercase">{player.name}</div>
+          <div className="flex gap-0.5 mt-0.5">
+            {Array.from({ length: 3 }).map((_, i) => (
               <div 
                 key={i} 
-                className={`w-3 h-0.5 rounded-full ${player.scores[i] !== undefined ? (player.team === 'Fireball' ? 'bg-orange-500' : 'bg-blue-500') : 'bg-white/10'}`} 
+                className={`w-2 h-0.5 rounded-full ${player.scores[i] !== undefined ? 'bg-orange-500' : 'bg-white/10'}`} 
               />
             ))}
           </div>
         </div>
-        <div className="text-lg font-black tabular-nums opacity-80">
+        <div className="text-xs font-black tabular-nums opacity-80">
           {totalScore}
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+function StartMenu({ onStart }: { onStart: () => void }) {
+  return (
+    <motion.div
+      key="start-menu"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="text-center p-8 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-xl w-[350px]"
+    >
+      <Flame className="w-16 h-16 mx-auto mb-4 text-orange-500 animate-pulse" />
+      <h2 className="text-2xl font-black tracking-tighter uppercase italic mb-6 leading-tight">
+        FIREBALL ROLL-OFF<br/>WARM-UP
+      </h2>
+      
+      <div className="space-y-6 text-left mb-8">
+        <section>
+          <h3 className="text-[10px] font-mono text-orange-500 uppercase tracking-widest mb-2">Objective</h3>
+          <p className="text-xs text-white/70 leading-relaxed">
+            Work together as a team to achieve the highest possible total score.
+          </p>
+        </section>
+
+        <section>
+          <h3 className="text-[10px] font-mono text-orange-500 uppercase tracking-widest mb-2">Controls</h3>
+          <ul className="text-xs text-white/70 space-y-1">
+            <li>• <span className="text-white">Pull Back:</span> Charge Power</li>
+            <li>• <span className="text-white">Drag Left/Right:</span> Adjust Spin</li>
+            <li>• <span className="text-white">Release:</span> Bowl</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 className="text-[10px] font-mono text-orange-500 uppercase tracking-widest mb-2">Difficulty Curve</h3>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              <p className="text-[10px] text-white/60"><span className="text-white">Ball 1:</span> Full Trajectory Line</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+              <p className="text-[10px] text-white/60"><span className="text-white">Ball 2:</span> Half Trajectory Line</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              <p className="text-[10px] text-white/60"><span className="text-white">Ball 3:</span> No Trajectory Line</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <button
+        onClick={onStart}
+        className="w-full py-4 bg-white text-black font-black rounded-full hover:bg-orange-500 hover:text-white transition-all active:scale-95 text-sm uppercase tracking-widest"
+      >
+        Let's Roll!
+      </button>
     </motion.div>
   );
 }
