@@ -1,0 +1,4 @@
+# FAKE_SECRET_FOR_TESTING2
+DATABASE_URL="postgres://ewtwet:jkasldfjasjklgf@localhost:5432/appdb"
+JWT_SECRET="sdfsdf-sdfsdfa-gw-gaw-egas-gwe-gaweg"
+API_KEY=";asdklfjaskja325235dkgjkgjbir"
